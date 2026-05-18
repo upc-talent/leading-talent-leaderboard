@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Leading Talents — Leaderboard</title>
+    <meta name="description" content="Live leaderboard for United Pharmacy Leading Talents training game.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-card: #1e293b;
+            --bg-card-highlight: #0ea5e9;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --diamond-color: #63C0EE;
+            --gold-color: #facc15;
+            --border-color: #334155;
+            --podium-1: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            --podium-2: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            --podium-3: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+            --glow-diamond: 0 0 20px rgba(99, 192, 238, 0.3);
+            --glow-gold: 0 0 20px rgba(250, 204, 21, 0.3);
+        }
+
+        html { height: 100%; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100%;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+
+        /* ── Background decoration ── */
+        .bg-decoration {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .bg-decoration::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            left: -20%;
+            width: 60%;
+            height: 80%;
+            background: radial-gradient(ellipse, rgba(14, 165, 233, 0.08) 0%, transparent 70%);
+            animation: drift 20s ease-in-out infinite alternate;
+        }
+        .bg-decoration::after {
+            content: '';
+            position: absolute;
+            bottom: -30%;
+            right: -15%;
+            width: 50%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(250, 204, 21, 0.05) 0%, transparent 70%);
+            animation: drift 25s ease-in-out infinite alternate-reverse;
+        }
+        @keyframes drift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(40px, -30px) rotate(5deg); }
+        }
+
+        /* ── Layout ── */
+        .page-wrapper {
+            position: relative;
+            z-index: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 0 16px 80px;
+        }
+
+        /* ── Header ── */
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: rgba(15, 23, 42, 0.85);
+            border-bottom: 1px solid rgba(51, 65, 85, 0.5);
+            padding: 16px 0;
+            margin-bottom: 8px;
+        }
+        .header-inner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header-logo {
+            width: 48px;
+            height: 48px;
+            object-fit: contain;
+        }
+        .header-title {
+            font-weight: 900;
+            font-size: 14px;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+        }
+        .header-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .live-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #4ade80;
+        }
+        .live-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #4ade80;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        /* ── Refresh Button ── */
+        .refresh-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: rgba(30, 41, 59, 0.6);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
+        }
+        .refresh-btn:hover {
+            background: rgba(51, 65, 85, 0.8);
+            color: var(--text-primary);
+        }
+        .refresh-btn:active {
+            transform: scale(0.9);
+        }
+        .refresh-btn svg {
+            width: 18px;
+            height: 18px;
+            transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        .refresh-btn.spinning svg {
+            animation: refresh-spin 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes refresh-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Hero section ── */
+        .hero {
+            text-align: center;
+            padding: 48px 0 40px;
+        }
+        .hero-coin {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 20px;
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 8px 24px rgba(99, 192, 238, 0.35));
+            transform: scale(1.6);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1.6); }
+            50% { transform: translateY(-12px) scale(1.6); }
+        }
+        .hero h1 {
+            font-size: clamp(2rem, 8vw, 3.2rem);
+            font-weight: 900;
+            font-style: italic;
+            text-transform: uppercase;
+            letter-spacing: -0.03em;
+            line-height: 1;
+            background: linear-gradient(135deg, #f8fafc 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .hero-sub {
+            margin-top: 10px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+        }
+
+        /* ── Podium ── */
+        .podium-section {
+            margin-bottom: 32px;
+        }
+        .podium {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: end;
+        }
+        .podium-card {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-radius: 24px;
+            padding: 24px 10px 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            position: relative;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .podium-card:hover {
+            transform: translateY(-4px);
+        }
+        .podium-card[data-rank="1"] {
+            order: 2;
+            padding: 32px 10px 28px;
+            background: linear-gradient(180deg, rgba(251, 191, 36, 0.12) 0%, var(--bg-card) 60%);
+            border-color: rgba(251, 191, 36, 0.3);
+            box-shadow: 0 0 40px rgba(251, 191, 36, 0.1);
+        }
+        .podium-card[data-rank="2"] { order: 1; }
+        .podium-card[data-rank="3"] { order: 3; }
+        .podium-card[data-rank="4"] { order: 4; }
+
+        .podium-rank {
+            position: absolute;
+            top: -14px;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 13px;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        .podium-card[data-rank="1"] .podium-rank {
+            background: var(--podium-1);
+            width: 34px;
+            height: 34px;
+            font-size: 15px;
+            top: -17px;
+        }
+        .podium-card[data-rank="2"] .podium-rank { background: var(--podium-2); }
+        .podium-card[data-rank="3"] .podium-rank { background: var(--podium-3); }
+        .podium-card[data-rank="4"] .podium-rank { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
+
+        .podium-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 22px;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+            border: 3px solid var(--border-color);
+        }
+        .podium-card[data-rank="1"] .podium-avatar {
+            width: 68px;
+            height: 68px;
+            font-size: 26px;
+            border-color: rgba(251, 191, 36, 0.4);
+        }
+
+        .podium-name {
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: -0.01em;
+            text-align: center;
+            margin-bottom: 12px;
+            word-break: break-word;
+        }
+        .podium-card[data-rank="1"] .podium-name {
+            font-size: 16px;
+        }
+
+        .podium-coins {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+        .podium-coin {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+        }
+        .podium-coin img {
+            width: 22px;
+            height: 22px;
+        }
+        .podium-coin .diamond-icon {
+            transform: scale(1.6);
+        }
+        .podium-coin-val {
+            font-weight: 900;
+            font-size: 15px;
+        }
+        .podium-coin-val.diamond { color: var(--diamond-color); }
+        .podium-coin-val.gold { color: var(--gold-color); }
+
+        /* ── Rankings List ── */
+        .rankings-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .section-label {
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            color: var(--text-muted);
+            padding: 0 4px;
+            margin-bottom: 4px;
+        }
+
+        .rank-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px 20px;
+            border-radius: 20px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+        }
+        .rank-card:hover {
+            transform: translateX(4px);
+            background: rgba(30, 41, 59, 0.9);
+            border-color: rgba(51, 65, 85, 0.8);
+        }
+
+        .rank-number {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 14px;
+            flex-shrink: 0;
+            background: rgba(51, 65, 85, 0.6);
+            color: var(--text-secondary);
+        }
+
+        .rank-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: var(--bg-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 17px;
+            color: var(--text-primary);
+            flex-shrink: 0;
+            border: 2px solid var(--border-color);
+        }
+
+        .rank-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .rank-name {
+            font-weight: 800;
+            font-size: 15px;
+            letter-spacing: -0.01em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .rank-coins {
+            display: flex;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+        .rank-coin {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+        }
+        .rank-coin img {
+            width: 20px;
+            height: 20px;
+        }
+        .rank-coin .diamond-icon {
+            transform: scale(1.6);
+        }
+        .rank-coin-val {
+            font-weight: 900;
+            font-size: 15px;
+        }
+        .rank-coin-val.diamond { color: var(--diamond-color); }
+        .rank-coin-val.gold { color: var(--gold-color); }
+
+        /* ── Empty & Loading States ── */
+        .state-msg {
+            text-align: center;
+            padding: 80px 20px;
+        }
+        .state-msg-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        .state-msg h2 {
+            font-weight: 800;
+            font-size: 20px;
+            margin-bottom: 6px;
+        }
+        .state-msg p {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--diamond-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+        }
+
+        /* ── Animations ── */
+        .fade-in {
+            animation: fadeIn 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stagger-1 { animation-delay: 0.05s; animation-fill-mode: both; }
+        .stagger-2 { animation-delay: 0.1s; animation-fill-mode: both; }
+        .stagger-3 { animation-delay: 0.15s; animation-fill-mode: both; }
+        .stagger-4 { animation-delay: 0.2s; animation-fill-mode: both; }
+        .stagger-5 { animation-delay: 0.25s; animation-fill-mode: both; }
+        .stagger-6 { animation-delay: 0.3s; animation-fill-mode: both; }
+        .stagger-7 { animation-delay: 0.35s; animation-fill-mode: both; }
+        .stagger-8 { animation-delay: 0.4s; animation-fill-mode: both; }
+
+        /* ── Responsive ── */
+        @media (max-width: 600px) {
+            .podium { gap: 6px; }
+            .podium-card { padding: 18px 6px 14px; border-radius: 16px; }
+            .podium-card[data-rank="1"] { padding: 24px 6px 20px; }
+            .podium-avatar { width: 38px; height: 38px; font-size: 16px; }
+            .podium-card[data-rank="1"] .podium-avatar { width: 48px; height: 48px; font-size: 20px; }
+            .podium-name { font-size: 11px; }
+            .podium-card[data-rank="1"] .podium-name { font-size: 12px; }
+            .podium-coins { gap: 8px; }
+            .podium-coin img { width: 16px; height: 16px; }
+            .podium-coin-val { font-size: 12px; }
+            .rank-card { padding: 14px 16px; gap: 12px; }
+            .rank-coins { gap: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-decoration"></div>
+
+    <div class="page-wrapper">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-inner">
+                <div class="header-brand">
+                    <img src="img/full-logo-png.png" alt="United Pharmacy" class="header-logo" onerror="this.style.display='none'">
+                    <span class="header-title">United Pharmacy</span>
+                </div>
+                <div class="header-status">
+                    <button class="refresh-btn" id="refresh-btn" onclick="manualRefresh()" title="Refresh now">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                    <div class="live-badge" id="live-badge">
+                        <span class="live-dot"></span>
+                        Live
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero -->
+        <section class="hero fade-in">
+            <img src="img/diamond-coin.png" alt="Diamond" class="hero-coin" onerror="this.textContent='💎'">
+            <h1>Leaderboard</h1>
+            <p class="hero-sub">Live Team Rankings</p>
+        </section>
+
+        <!-- Content (rendered by JS) -->
+        <div id="leaderboard-root"></div>
+
+        <div class="footer">Leading Talents &bull; United Pharmacy Training</div>
+    </div>
+
+    <script>
+        // ─── API CONFIG (same as main app) ───
+        const API_URL = "https://script.google.com/macros/s/AKfycby-xblvn4mvOBMM0IkCvLAYNbpMS5K9TaHoKaiBF4n5NhQyrkTljwsmUWYu9WXTkTrh/exec";
+        const POLL_INTERVAL_MS = 3000;
+
+        let registry = [];
+        let isLoading = true;
+        let pollTimer = null;
+        let lastSnapshot = null; // JSON string of the last rendered data
+
+        // ─── Build a comparable snapshot from registry ───
+        function buildSnapshot(registryData) {
+            const participants = registryData.filter(t => t.role === 'PARTICIPANT');
+            const sorted = [...participants].sort((a, b) => {
+                const aD = Number(a.goldCoins || 0);
+                const bD = Number(b.goldCoins || 0);
+                if (bD !== aD) return bD - aD;
+                return Number(b.silverCoins || 0) - Number(a.silverCoins || 0);
+            });
+            return JSON.stringify(sorted.map(t => ({
+                name: t.name || '',
+                d: Number(t.goldCoins || 0),
+                g: Number(t.silverCoins || 0)
+            })));
+        }
+
+        // ─── Fetch Registry (only re-renders when data changes) ───
+        async function fetchRegistry(forceRender) {
+            try {
+                const res = await fetch(API_URL + '?_=' + Date.now(), { cache: 'no-store' });
+                if (!res.ok) throw new Error('Network error');
+                const data = await res.json();
+
+                let registryData = [];
+                if (Array.isArray(data)) registryData = data;
+                else if (data && Array.isArray(data.registry)) registryData = data.registry;
+
+                const newSnapshot = buildSnapshot(registryData);
+                const wasLoading = isLoading;
+                isLoading = false;
+                registry = registryData;
+
+                // Only re-render if data actually changed (or first load / forced)
+                if (forceRender || wasLoading || newSnapshot !== lastSnapshot) {
+                    lastSnapshot = newSnapshot;
+                    renderLeaderboard();
+                }
+            } catch (err) {
+                console.error('Fetch error:', err);
+                if (isLoading) {
+                    isLoading = false;
+                    renderLeaderboard();
+                }
+            }
+        }
+
+        // ─── Manual Refresh ───
+        function manualRefresh() {
+            const btn = document.getElementById('refresh-btn');
+            if (btn) {
+                btn.classList.remove('spinning');
+                // Force reflow to restart animation
+                void btn.offsetWidth;
+                btn.classList.add('spinning');
+                setTimeout(() => btn.classList.remove('spinning'), 650);
+            }
+            fetchRegistry(true);
+        }
+
+        // ─── Render ───
+        function renderLeaderboard() {
+            const root = document.getElementById('leaderboard-root');
+            const participants = registry.filter(t => t.role === 'PARTICIPANT');
+
+            if (isLoading) {
+                root.innerHTML = `
+                    <div class="state-msg fade-in">
+                        <div class="spinner"></div>
+                        <h2>Loading Rankings</h2>
+                        <p>Connecting to the live feed…</p>
+                    </div>`;
+                return;
+            }
+
+            if (participants.length === 0) {
+                root.innerHTML = `
+                    <div class="state-msg fade-in">
+                        <div class="state-msg-icon">🏆</div>
+                        <h2>No Teams Yet</h2>
+                        <p>Waiting for teams to join the session…</p>
+                    </div>`;
+                return;
+            }
+
+            // Sort: Diamonds (goldCoins) first, then Gold (silverCoins)
+            const sorted = [...participants].sort((a, b) => {
+                const aD = Number(a.goldCoins || 0);
+                const bD = Number(b.goldCoins || 0);
+                if (bD !== aD) return bD - aD;
+                return Number(b.silverCoins || 0) - Number(a.silverCoins || 0);
+            });
+
+            const rankings = sorted.map((t, idx) => ({
+                rank: idx + 1,
+                name: t.name || 'Unknown',
+                diamonds: Number(t.goldCoins || 0),
+                gold: Number(t.silverCoins || 0)
+            }));
+
+            const top4 = rankings.slice(0, 4);
+            const rest = rankings.slice(4);
+
+            let html = '';
+
+            // ── Podium (top 4) ──
+            if (top4.length >= 1) {
+                html += `<section class="podium-section fade-in">`;
+                html += `<div class="podium">`;
+
+                const podiumOrders = [2, 1, 3, 4]; // rank 1→col2, rank 2→col1, rank 3→col3, rank 4→col4
+                // Always render 4 slots (fill empty if needed)
+                for (let i = 0; i < 4; i++) {
+                    const team = top4[i];
+                    if (!team) {
+                        // Empty podium slot
+                        html += `<div class="podium-card" data-rank="${i + 1}" style="order:${podiumOrders[i]}; opacity: 0.3;">
+                            <div class="podium-rank">${i + 1}</div>
+                            <div class="podium-avatar">—</div>
+                            <div class="podium-name" style="color: var(--text-muted);">—</div>
+                        </div>`;
+                        continue;
+                    }
+                    const initial = team.name.charAt(0).toUpperCase();
+                    html += `
+                        <div class="podium-card stagger-${i + 1}" data-rank="${team.rank}">
+                            <div class="podium-rank">${team.rank}</div>
+                            <div class="podium-avatar">${initial}</div>
+                            <div class="podium-name">${escapeHtml(team.name)}</div>
+                            <div class="podium-coins">
+                                <div class="podium-coin">
+                                    <img src="img/diamond-coin.png" alt="Diamond" class="diamond-icon" onerror="this.alt='💎'">
+                                    <span class="podium-coin-val diamond">${team.diamonds}</span>
+                                </div>
+                                <div class="podium-coin">
+                                    <img src="img/golden-coin.png" alt="Gold" onerror="this.alt='🪙'">
+                                    <span class="podium-coin-val gold">${team.gold}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                }
+
+                html += `</div></section>`;
+            }
+
+            // ── Remaining rankings ──
+            if (rest.length > 0) {
+                html += `<section class="rankings-section fade-in">`;
+                html += `<div class="section-label">Other Teams</div>`;
+
+                rest.forEach((team, i) => {
+                    const initial = team.name.charAt(0).toUpperCase();
+                    const stagger = Math.min(i + 4, 8);
+                    html += `
+                        <div class="rank-card stagger-${stagger}">
+                            <div class="rank-number">${team.rank}</div>
+                            <div class="rank-avatar">${initial}</div>
+                            <div class="rank-info">
+                                <div class="rank-name">${escapeHtml(team.name)}</div>
+                            </div>
+                            <div class="rank-coins">
+                                <div class="rank-coin">
+                                    <img src="img/diamond-coin.png" alt="Diamond" class="diamond-icon" onerror="this.alt='💎'">
+                                    <span class="rank-coin-val diamond">${team.diamonds}</span>
+                                </div>
+                                <div class="rank-coin">
+                                    <img src="img/golden-coin.png" alt="Gold" onerror="this.alt='🪙'">
+                                    <span class="rank-coin-val gold">${team.gold}</span>
+                                </div>
+                            </div>
+                        </div>`;
+                });
+
+                html += `</section>`;
+            }
+
+            root.innerHTML = html;
+        }
+
+        // ─── Utility ───
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // ─── Start ───
+        fetchRegistry();
+        pollTimer = setInterval(() => fetchRegistry(false), POLL_INTERVAL_MS);
+    </script>
+</body>
+</html>
